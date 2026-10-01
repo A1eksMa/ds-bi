@@ -1,0 +1,15 @@
+# база и выгрузки -- рабочие данные, не код
+*.db
+*.db-journal
+/out/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+*~
+.idea/
+.vscode/
