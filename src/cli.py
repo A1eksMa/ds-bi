@@ -61,6 +61,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not os.path.isdir(args.queries_dir):
         os.makedirs(args.queries_dir, exist_ok=True)
 
+    # sqlite3.connect на несуществующий путь тихо создаёт новый пустой файл —
+    # почти всегда опечатка в --db (см. src/db.py), а не намеренное "создать
+    # новую базу". Явная проверка здесь, ДО выбора запроса/запроса параметров --
+    # не заставлять вводить значения, чтобы потом узнать, что путь был неверным.
+    if not os.path.isfile(args.db):
+        print("❌ Файл БД не найден: " + args.db, file=sys.stderr)
+        return 1
+
     selected = _resolve_query(args)
     if selected is None:
         return 1

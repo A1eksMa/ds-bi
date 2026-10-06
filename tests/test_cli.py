@@ -60,10 +60,26 @@ def test_rejects_unsafe_identifier_value(tmp_path, capsys):
 
 
 def test_missing_query_reports_error(tmp_path, capsys):
+    db = tmp_path / "d.db"
+    _make_db(str(db))
     (tmp_path / "queries").mkdir()
-    rc = main(["--queries-dir", str(tmp_path / "queries"), "nope"])
+    rc = main(["--db", str(db), "--queries-dir", str(tmp_path / "queries"), "nope"])
     assert rc == 1
-    assert "не найден" in capsys.readouterr().err
+    assert "Запрос не найден" in capsys.readouterr().err
+
+
+def test_missing_db_file_reports_error_before_prompting(tmp_path, capsys):
+    """sqlite3.connect на несуществующий путь тихо создал бы новый пустой файл --
+    явная проверка должна сработать раньше, чем что-либо попросит ввести параметр
+    (см. src/cli.py::main)."""
+    _write_query(tmp_path / "queries" / "q.sql", "SELECT :x")
+    missing_db = tmp_path / "nope.db"
+
+    rc = main(["--db", str(missing_db), "--queries-dir", str(tmp_path / "queries"), "q"])
+
+    assert rc == 1
+    assert "Файл БД не найден" in capsys.readouterr().err
+    assert not missing_db.exists()   # и правда не создали пустую БД
 
 
 def test_write_statement_reports_no_data(tmp_path, capsys):
@@ -125,9 +141,12 @@ def test_format_csv_to_file_has_bom_for_excel(tmp_path, capsys):
 
 
 def test_queries_dir_autocreated_if_missing(tmp_path):
+    db = tmp_path / "d.db"
+    _make_db(str(db))
     missing = tmp_path / "queries"
     assert not missing.exists()
-    rc = main(["--queries-dir", str(missing)])  # без query -> интерактив, но input() не вызовется
+    # без query -> интерактив, но input() не вызовется
+    rc = main(["--db", str(db), "--queries-dir", str(missing)])
     # пустая папка -> навигация сразу вернёт None (ничего не выбрано) -> main() вернёт 1,
     # но сама папка должна быть создана как побочный эффект
     assert rc == 1
